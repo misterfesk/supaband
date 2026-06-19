@@ -4,7 +4,7 @@
 
 ### Multi-Agent Fleet
 - **4 manager agents** running persistently: Supa (CEO), Koe (Research), Mave (Marketing), Forge (Operations)
-- **On-demand specialist workers**: Quill (Content), Pulse (SEO), Canvas (Visual), Demon (Personality)
+- **On-demand specialist workers**: Quill (Content), Pulse (SEO), Canvas (Visual)
 - **Blob consumer panel**: 3 persona-based agents for shadow testing (Early Adopter, Skeptical Buyer, Price-Sensitive)
 - Each agent is a **LangGraph ReAct agent** with `MemorySaver` checkpointing
 - Agents poll Band every 3s for new messages, process through LLM, respond automatically

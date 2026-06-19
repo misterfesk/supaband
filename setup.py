@@ -9,7 +9,7 @@ Usage:
 
 This script:
     1. Sets up Python venv and installs dependencies
-    2. Registers ALL 13 agents on Band via Human API
+    2. Registers ALL 12 agents on Band via Human API
     3. Generates agent_config.yaml with all credentials
     4. Generates .env with LLM provider settings
     5. Creates data directories
@@ -97,12 +97,6 @@ AGENTS = [
         "name": "Canvas",
         "role": "Visual Production Coordinator — creates creative briefs for graphics and video content",
         "handle": "@zoha/canvas-bz",
-    },
-    {
-        "config_key": "credential_demon",
-        "name": "Demon",
-        "role": "Conversational personality agent for casual conversation and vibes",
-        "handle": "@zoha/demon-bz",
     },
     {
         "config_key": "credential_dataminer",
@@ -215,7 +209,7 @@ def register_agent(band_client, agent_def: dict) -> dict | None:
         return None
 
 def register_all_agents(human_api_key: str) -> dict[str, dict]:
-    """Register all 13 agents on Band. Returns {config_key: {agent_id, api_key}}."""
+    """Register all 12 agents on Band. Returns {config_key: {agent_id, api_key}}."""
     from thenvoi_rest import RestClient
 
     client = RestClient(
@@ -316,7 +310,6 @@ def create_directories():
         "workers/quill/data/logs",
         "workers/pulse/data/logs",
         "workers/canvas/data/logs",
-        "workers/demon/data/logs",
         "blob/blobw2/data/logs",
         "data/blackboard_files",
     ]
@@ -343,7 +336,7 @@ def interactive_prompt() -> tuple[str, str, str]:
     print(f"\n{C_BOLD}🦐 Supaband Setup — Interactive Configuration{C_RESET}\n")
     print("  This script will:")
     print("  1. Set up Python virtual environment")
-    print("  2. Register all 13 agents on Band automatically")
+    print("  2. Register all 12 agents on Band automatically")
     print("  3. Generate agent_config.yaml and .env")
     print("")
     print(f"  {C_BOLD}What you'll need:{C_RESET}")

@@ -1,8 +1,10 @@
 # Supaband 🦐
 
-> A self-contained multi-agent system built on [Band](https://band.ai) — clone, configure, run.
+> A multi-agent management system for your business & projects — clone, configure, run.
 
-**Supaband** is a multi-agent AI organization where specialized agents collaborate through Band's communication layer. A CEO agent (Supa) delegates tasks to department managers (Research, Marketing, Operations), who spawn specialist workers on-demand. Agents share context through a SQLite blackboard, deliver results in a real-time WebUI dashboard, and self-manage their lifecycle via a built-in fleet system.
+**Supaband** is a multi-agent system that can manage your business or projects autonomously. A CEO agent (Supa) spawns new agents on-demand, coordinates a customized team of specialists, and executes tasks through a real-time collaboration layer built on [Band](https://band.ai). Agents brainstorm ideas, make marketing strategies, produce digital content (posts, images, videos), manage projects with approval workflows, integrate 3rd-party services, and even issue remote credentials so you can connect external agents (like OpenClaw managing a VPS) — all without touching the infrastructure yourself.
+
+**For this hackathon demo**, Supaband is configured as an automated business management system with agents handling research, marketing, production, and operations. You give Supa your ideas — it brainstorms, creates strategies, and the team executes. Agents can produce social media posts periodically (with visuals), items land on the production dashboard for your approval, and you can connect external services like Higgso for production workflows.
 
 ---
 
@@ -25,7 +27,7 @@ cd supaband
 **What `./setup.sh` does:**
 - Creates a Python virtual environment + installs all dependencies
 - Asks for your **OpenAI-compatible API key** + **Band Human API key**
-- **Registers ALL 13 agents on Band automatically** (no manual steps)
+- **Registers ALL 12 agents on Band automatically** (no manual steps)
 - Generates `agent_config.yaml` and `.env` with all credentials
 
 > **Prerequisites:** Python 3.11+ and a [Band Pro account](https://app.band.ai) (for agent communication layer). You need a **Human API key** from Band — Settings → API Keys.
@@ -63,8 +65,7 @@ supaband/
 ├── workers/             # On-demand specialist workers
 │   ├── quill/           # Content Strategist & Copywriter
 │   ├── pulse/           # SEO & Digital Marketing Analyst
-│   ├── canvas/          # Visual Production Coordinator
-│   └── demon/           # Conversational personality agent
+│   └── canvas/          # Visual Production Coordinator
 ├── blob/                # Shadow testing consumer panel (3 persona agents)
 ├── core/                # Shared infrastructure
 │   ├── agent_base.py    # BaseAgent — polling, Band, health, tools, lifecycle
@@ -128,8 +129,6 @@ supaband/
 | **Quill** | `@<org>/quill-bz` | Content Strategist & Copywriter |
 | **Pulse** | `@<org>/pulse-bz` | SEO & Digital Marketing Analyst |
 | **Canvas** | `@<org>/canvas-bz` | Visual Production Coordinator |
-| **Demon** | `@<org>/demon-bz` | Conversational personality agent |
-
 ### Shadow Testing Panel
 
 | Agent | Persona |
@@ -344,7 +343,7 @@ BAND_HUMAN_API_KEY=your-band-human-key       # For on-demand worker creation
 ```
 
 ### `agent_config.yaml` — Agent Credentials
-Generated automatically by `./setup.sh`. Contains 13 agent entries with Band API keys, UUIDs, handles, and roles.
+Generated automatically by `./setup.sh`. Contains 12 agent entries with Band API keys, UUIDs, handles, and roles.
 
 ### Skills System
 Drop `.md` files into `skills/` — they're auto-injected into all agent system prompts. Built-in skills:

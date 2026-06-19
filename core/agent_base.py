@@ -480,7 +480,7 @@ def make_shared_band_tools(ctx: BandContext) -> list:
             targets = [a.strip() for a in remove_agents.split(",") if a.strip()]
         else:
             # Default: remove all workers and blob agents
-            targets = ["quill", "pulse", "canvas", "demon",
+            targets = ["quill", "pulse", "canvas",
                        "blobw1", "blobw2", "blobw3"]
 
         removed = []

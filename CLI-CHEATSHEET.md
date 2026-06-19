@@ -61,8 +61,6 @@ All commands run from `supaband/` directory.
 | Quill  | @zoha/quill-bz     | Content Strategist |
 | Pulse  | @zoha/pulse-bz     | SEO Analyst |
 | Canvas | @zoha/canvas-bz    | Visual Production |
-| Demon  | @zoha/demon-bz     | Conversational Agent |
-
 ---
 
 ## Architecture
@@ -70,7 +68,7 @@ All commands run from `supaband/` directory.
 ```
 supaband/
 ├── agents/          # Manager agents (supa, koe, mave, forge)
-├── workers/         # Specialist workers (quill, pulse, canvas, demon)
+├── workers/         # Specialist workers (quill, pulse, canvas)
 ├── blob/            # Shadow testing consumer panel
 ├── core/            # Shared infrastructure (agent_base, config, blackboard, etc.)
 ├── webui/           # Web dashboard (FastAPI)

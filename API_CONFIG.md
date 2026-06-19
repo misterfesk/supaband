@@ -55,7 +55,6 @@ OPENAI_API_KEY=your-o...# Optional: defaults to https://api.openai.com/v1
 - Quill (Content Strategist)
 - Pulse (SEO Analyst)
 - Canvas (Visual Production)
-- Demon (Conversational agent)
 - DataMiner (Data analysis)
 
 Each agent gets its own API key from Band (stored in `agent_config.yaml`).
@@ -82,7 +81,7 @@ supervisor_agent:
 
 research_manager:
   name: "Koe"
-  # ... etc for all 13 agents
+  # ... etc for all 12 agents
 ```
 
 ---
@@ -99,7 +98,7 @@ Prompts for:
 
 Then automatically:
 - Creates venv + installs deps
-- Registers all 13 agents on Band
+- Registers all 12 agents on Band
 - Generates `.env` and `agent_config.yaml`
 
 ### Option B: CI / Scripted
