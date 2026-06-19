@@ -7,7 +7,7 @@ agent_config.yaml
 *.pem
 *_token*
 *_secret*
-*credential*
+*_credential*
 
 # ── Python ───────────────────────────────────────────────
 .venv/
