@@ -48,7 +48,7 @@ curl http://127.0.0.1:9105/health   # Mave
 curl http://127.0.0.1:9106/health   # Forge
 ```
 
-Health response: `{"pid": 12345, "cycles": 42, "messages_processed": 15, "uptime_seconds": 3600, "model": "deepseek-v4-flash", ...}`
+Health response: `{"pid": 12345, "cycles": 42, "messages_processed": 15, "uptime_seconds": 3600, "model": "...", ...}`
 
 ## Stopping Agents
 

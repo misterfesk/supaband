@@ -29,7 +29,7 @@ OPENAI_API_KEY=your-o...# Optional: defaults to https://api.openai.com/v1
 # The setup script generates this automatically from your prompt answers.
 ```
 
-**Model used:** `deepseek-v4-flash` (configurable per-agent in `agents/<name>/agent.py`)
+**Model used:** Configurable via `SUPABAND_MODEL` in `.env` (default: `deepseek-chat`)
 
 ---
 
@@ -130,7 +130,7 @@ from dotenv import load_dotenv
 import os
 load_dotenv()
 llm = ChatOpenAI(
-    model='deepseek-v4-flash',
+    model='',  # Set SUPABAND_MODEL in .env
     api_key=os.getenv('OPENAI_API_KEY'),
     base_url=os.getenv('OPENAI_BASE_URL', 'https://api.openai.com/v1')
 )

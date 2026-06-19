@@ -21,7 +21,7 @@ from core.webui_tools import make_webui_tools
 
 class QuillAgent(BaseAgent):
     CONFIG_KEY = "content_strategist"
-    MODEL = "deepseek-v4-flash"
+    MODEL = ""  # Configure via SUPABAND_MODEL env var or override in subclass
     TEMPERATURE = 0.6
 
     def get_system_prompt(self) -> str:

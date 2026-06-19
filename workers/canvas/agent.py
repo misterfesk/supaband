@@ -22,7 +22,7 @@ from core.webui_tools import make_webui_tools
 
 class CanvasAgent(BaseAgent):
     CONFIG_KEY = "visual_coordinator"
-    MODEL = "deepseek-v4-flash"
+    MODEL = ""  # Configure via SUPABAND_MODEL env var or override in subclass
     TEMPERATURE = 0.7
 
     def get_system_prompt(self) -> str:

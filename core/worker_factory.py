@@ -229,7 +229,7 @@ def _to_class_name(name: str) -> str:
 # ── Worker Lifecycle ─────────────────────────────────────────────────
 
 def create_worker(name: str, description: str, system_prompt: str,
-                  model: str = "deepseek-v4-flash",
+                  model: str = "",
                   temperature: float = 0.4,
                   tools_import: str = "",
                   tools_list: str = "",
@@ -245,7 +245,7 @@ def create_worker(name: str, description: str, system_prompt: str,
         name: Worker name (lowercase, hyphens ok, e.g. "market-analyst")
         description: Short description for Band registration
         system_prompt: Full system prompt text for the agent
-        model: LLM model to use (default: deepseek-v4-flash)
+        model: LLM model to use (default: blank — configure via SUPABAND_MODEL env var)
         temperature: LLM temperature
         tools_import: Optional Python import line for extra tools (e.g. "from agents.marketing.tools import MARKETING_WORKER_TOOLS")
         tools_list: Optional tools list extension (e.g. ", *MARKETING_WORKER_TOOLS")

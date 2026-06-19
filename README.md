@@ -4,7 +4,7 @@
 
 **Supaband** is a multi-agent system that can manage your business or projects autonomously. A CEO agent (Supa) spawns new agents on-demand, coordinates a customized team of specialists, and executes tasks through a real-time collaboration layer built on [Band](https://band.ai). Agents brainstorm ideas, make marketing strategies, produce digital content (posts, images, videos), manage projects with approval workflows, integrate 3rd-party services, and even issue remote credentials so you can connect external agents (like OpenClaw managing a VPS) — all without touching the infrastructure yourself.
 
-**For this hackathon demo**, Supaband is configured as an automated business management system with agents handling research, marketing, production, and operations. You give Supa your ideas — it brainstorms, creates strategies, and the team executes. Agents can produce social media posts periodically (with visuals), items land on the production dashboard for your approval, and you can connect external services like Higgso for production workflows.
+**Supaband** is a self-contained multi-agent AI system for business automation. You give Supa your strategic objectives — it brainstorms, creates plans, and the agent team executes. Agents coordinate market research, marketing campaigns, content production, visual briefs, and operational planning. Deliverables land on the production dashboard for your approval, and you can connect external services for extended workflows.
 
 ---
 
@@ -276,7 +276,7 @@ curl http://127.0.0.1:9112/health  # Blobw3
 
 Returns:
 ```json
-{"status": "ok", "cycles": 42, "messages_processed": 15, "uptime_seconds": 3600, "model": "deepseek-v4-flash"}
+{"status": "ok", "cycles": 42, "messages_processed": 15, "uptime_seconds": 3600, "model": "*configurable via SUPABAND_MODEL*"}
 ```
 
 ---
@@ -323,7 +323,7 @@ Supa's watchdog restarts crashed agents automatically. Health endpoints expose r
 | Component | Technology |
 |-----------|-----------|
 | **Agent Framework** | LangGraph (ReAct agent + MemorySaver checkpointing) |
-| **LLM** | Configurable — defaults to deepseek-v4-flash via OpenAI-compatible API |
+| **LLM** | Configurable — set SUPABAND_MODEL in .env for any OpenAI-compatible model |
 | **Communication** | Band platform (`thenvoi_rest` SDK) |
 | **WebUI** | FastAPI + vanilla JavaScript (SSE for real-time) |
 | **TUI** | Rich library |

@@ -676,7 +676,7 @@ class BaseAgent(ABC):
 
     # ── Subclass overrides ────────────────────────────────────────
     CONFIG_KEY: str = ""
-    MODEL: str = "deepseek-v4-flash"
+    MODEL: str = ""                     # Override in subclass or set SUPABAND_MODEL env var
     TEMPERATURE: float = 0.3
     POLL_INTERVAL: float = 3.0          # Seconds between poll cycles
     ERROR_BACKOFF_BASE: float = 1.0     # Exponential backoff base on errors
@@ -711,6 +711,15 @@ class BaseAgent(ABC):
         if not self.llm_api_key:
             raise ValueError(f"{self.name}: OPENAI_API_KEY not found in .env")
         self.llm_base_url: str = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+
+        # Resolve model: subclass override > SUPABAND_MODEL env var > raise error
+        if not self.MODEL:
+            self.MODEL = os.getenv("SUPABAND_MODEL", "")
+        if not self.MODEL:
+            raise ValueError(
+                f"{self.name}: No model configured. Set SUPABAND_MODEL in .env "
+                f"or override MODEL in the agent subclass."
+            )
 
         # PID file
         self.pid_file: Path = PROJECT_ROOT / "agents" / self.name.lower() / "data" / "agent.pid"

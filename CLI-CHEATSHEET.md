@@ -49,10 +49,10 @@ All commands run from `supaband/` directory.
 
 | Agent  | Handle             | Port  | Model              | Role |
 |--------|--------------------|-------|--------------------|------|
-| Supa   | @zoha/supa-bz      | 9100  | deepseek-v4-flash  | CEO & Supervisor |
-| Koe    | @zoha/koe-bz       | 9101  | deepseek-v4-flash  | Research Manager |
-| Mave   | @zoha/mave-bz      | 9105  | deepseek-v4-flash  | Marketing Manager |
-| Forge  | @zoha/forge-bz     | 9106  | deepseek-v4-flash  | Operations Manager |
+| Supa   | @zoha/supa-bz      | 9100  | configurable  | CEO & Supervisor |
+| Koe    | @zoha/koe-bz       | 9101  | configurable  | Research Manager |
+| Mave   | @zoha/mave-bz      | 9105  | configurable  | Marketing Manager |
+| Forge  | @zoha/forge-bz     | 9106  | configurable  | Operations Manager |
 
 ### Specialist Workers (on-demand)
 
@@ -101,4 +101,4 @@ curl http://127.0.0.1:9105/health  # Mave
 curl http://127.0.0.1:9106/health  # Forge
 ```
 
-Returns: `{"status":"ok","cycles":42,"messages_processed":15,"uptime_seconds":3600,"model":"deepseek-v4-flash"}`
+Returns: `{"status":"ok","cycles":42,"messages_processed":15,"uptime_seconds":3600,"model":"...configurable via SUPABAND_MODEL..."}`

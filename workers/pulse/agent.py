@@ -21,7 +21,7 @@ from core.webui_tools import make_webui_tools
 
 class PulseAgent(BaseAgent):
     CONFIG_KEY = "seo_analyst"
-    MODEL = "deepseek-v4-flash"
+    MODEL = ""  # Configure via SUPABAND_MODEL env var or override in subclass
     TEMPERATURE = 0.3
 
     def get_system_prompt(self) -> str:

@@ -61,7 +61,7 @@ agents:
   - name: "<name>"
     handle: "<handle>"       # Display name in Band
     band_id: "<uuid>"        # From Band platform
-    model: "deepseek-v4-flash"
+    model: ""                 # Set SUPABAND_MODEL in .env
     room_id: "<room_uuid>"   # Optional: specific room
 ```
 
@@ -94,7 +94,7 @@ In `core/agent_base.py`, add port to the AGENT_PORTS dict (mirrors fleet.py).
 - ThreadPoolExecutor for message handling
 
 ### Model tiers
-- "standard" — deepseek-v4-flash (default, 32k context)
+- "standard" — OpenAI-compatible model set via SUPABAND_MODEL (default, 32k context)
 - "premium" — deeper context model for complex agents
 
 ## Shared Tools (core/shared_tools.py)

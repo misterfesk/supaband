@@ -164,7 +164,7 @@
 
 ### Stack
 - **Agent Framework:** LangGraph (ReAct agent + MemorySaver checkpointing)
-- **LLM:** deepseek-v4-flash via AI/ML API (OpenAI-compatible)
+- **LLM:** Configurable via SUPABAND_MODEL env var (any OpenAI-compatible model)
 - **Communication:** Band platform (thenvoi_rest SDK)
 - **WebUI:** FastAPI + vanilla JavaScript (SSE for real-time)
 - **TUI:** Rich library

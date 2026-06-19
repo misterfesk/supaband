@@ -22,7 +22,7 @@ from core.blob_agent_base import BlobWorkerAgent
 
 class Blobw3Agent(BlobWorkerAgent):
     CONFIG_KEY = "blob_worker_3"
-    MODEL = "deepseek/deepseek-chat"
+    MODEL = ""  # Configure via SUPABAND_MODEL env var
     BLOB_NAME = "blobw3"
     NEXT_AGENT = "blobw1"
     AUTO_RESPOND_TARGET = "blobw1"
