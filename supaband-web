@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# supaband — Launch the Supaband WebUI (like ./supaband)
+#
+# Usage:
+#   ./supaband-web                 Start WebUI server (default port 8080)
+#   ./supaband-web --port 3000     Use a custom port
+#   ./supaband-web --host 127.0.0.1  Bind to localhost only
+#
+# Auto-detects venv Python — no manual activation needed.
+# Auto-starts Supa agent if not running.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_PY="${SCRIPT_DIR}/.venv/bin/python3"
+
+if [ ! -f "$VENV_PY" ]; then
+  VENV_PY="$(command -v python3)"
+fi
+
+exec "$VENV_PY" "${SCRIPT_DIR}/webui/server.py" "$@"

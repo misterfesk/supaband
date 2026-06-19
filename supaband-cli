@@ -1,0 +1,418 @@
+#!/usr/bin/env python3
+"""Supaband CLI — Test and manage the agent fleet from the terminal.
+
+Band operations (require -a <agent>):
+    ./supaband-cli -a supa chats
+    ./supaband-cli -a supa room -t "Research" -m koe -M "task"
+    ./supaband-cli -a supa mention koe -c <id> "message"
+    ./supaband-cli -a supa poll -c <id> -m koe -t 120
+    ./supaband-cli -a koe export <id>
+    ./supaband-cli -a supa agent-status
+
+Fleet operations (no -a needed):
+    ./supaband-cli fleet-status
+    ./supaband-cli stop
+    ./supaband-cli start [supa] [koe]
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import signal
+import sys
+import textwrap
+import time
+import urllib.request
+from datetime import datetime
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+# Prefer project virtualenv interpreter for subprocess launches
+VENV_PYTHON = PROJECT_ROOT / ".venv" / "bin" / "python3"
+LAUNCH_PYTHON = str(VENV_PYTHON) if VENV_PYTHON.exists() else sys.executable
+
+from dotenv import load_dotenv
+from core.config import load_agent_config, get_agent_entry
+
+load_dotenv(PROJECT_ROOT / ".env")
+CONFIG = load_agent_config()
+
+from thenvoi_rest import RestClient
+from thenvoi_rest.types.chat_message_request import ChatMessageRequest
+from thenvoi_rest.types.chat_message_request_mentions_item import ChatMessageRequestMentionsItem
+from thenvoi_rest.types.chat_room_request import ChatRoomRequest
+from thenvoi_rest.types.participant_request import ParticipantRequest
+
+AGENT_PORTS = {"supa": 9100, "koe": 9101, "mave": 9105, "forge": 9106}
+# Load agent IDs from agent_config.yaml (must be populated by setup.sh first)
+def _load_agent_ids() -> dict[str, str]:
+    ids = {}
+    try:
+        for key, entry in CONFIG.items():
+            name = (entry.get("name") or key).lower().strip()
+            if entry.get("agent_id"):
+                ids[name] = str(entry["agent_id"])
+    except Exception:
+        pass
+    return ids
+
+AGENT_IDS_MAP = _load_agent_ids()
+
+
+# ── Helpers ───────────────────────────────────────────────────────────
+
+def _get_client(agent_name: str) -> tuple[RestClient, dict]:
+    key_map = {
+        "supa": "supervisor_agent", "koe": "research_manager",
+        "mave": "marketing_manager", "forge": "operations_manager",
+    }
+    config_key = key_map.get(agent_name.lower(), agent_name.lower())
+    entry = get_agent_entry(CONFIG, config_key)
+    return RestClient(api_key=entry["api_key"], base_url="https://app.band.ai", timeout=30.0), entry
+
+def _resolve_id(agent_name: str) -> str:
+    return AGENT_IDS_MAP.get(agent_name.lower(), agent_name.lower())
+
+def _eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+def _http_get(url: str, timeout: float = 3.0) -> dict | None:
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:
+            return json.loads(resp.read())
+    except Exception:
+        return None
+
+def _read_pid_file(agent_name: str) -> int | None:
+    pidfile = PROJECT_ROOT / "agents" / agent_name.lower() / "data" / "agent.pid"
+    if not pidfile.exists():
+        return None
+    try:
+        return int(pidfile.read_text().strip())
+    except Exception:
+        return None
+
+
+# ── Fleet Commands ────────────────────────────────────────────────────
+
+def cmd_fleet_status():
+    """Show status of all agents via PID files and health endpoints."""
+    print("\n🚀 Supaband Fleet Status\n")
+    for name in ["supa", "koe", "mave", "forge"]:
+        pid = _read_pid_file(name)
+        if pid:
+            alive = "🟢" if _check_pid(pid) else "🔴 (stale PID)"
+        else:
+            alive = "⚫"
+
+        health_info = ""
+        port = AGENT_PORTS.get(name, 0)
+        if port:
+            health = _http_get(f"http://127.0.0.1:{port}/health", timeout=2.0)
+            if health:
+                health_info = (f" | cycles={health.get('cycles',0)} "
+                               f"msgs={health.get('messages_processed',0)} "
+                               f"uptime={health.get('uptime_seconds',0)}s")
+
+        pid_str = f"PID {pid}" if pid else "no PID"
+        print(f"  {alive} {name:6s} — {pid_str}{health_info}")
+    print()
+
+def cmd_fleet_stop():
+    """Stop all running agents — HTTP first, SIGTERM as fallback."""
+    import signal as sig_mod
+    to_kill = []
+
+    for name in ["supa", "koe", "mave", "forge"]:
+        pid = _read_pid_file(name)
+        port = AGENT_PORTS.get(name, 0)
+
+        # Try HTTP graceful stop
+        if port:
+            try:
+                _http_get(f"http://127.0.0.1:{port}/stop", timeout=3.0)
+            except Exception:
+                pass
+
+        # Touch stop file as backup
+        stopfile = PROJECT_ROOT / "agents" / name.lower() / "data" / "stop"
+        stopfile.parent.mkdir(parents=True, exist_ok=True)
+        stopfile.touch()
+
+        if pid:
+            to_kill.append((name, pid))
+
+    # Wait 2s for graceful shutdown
+    time.sleep(2)
+
+    # Force-kill any survivors, then clean stop files
+    killed_force = []
+    for name, pid in to_kill:
+        if _check_pid(pid):
+            try:
+                os.kill(pid, sig_mod.SIGTERM)
+                killed_force.append(name)
+            except Exception:
+                pass
+        # Clean stop file so next start succeeds
+        (PROJECT_ROOT / "agents" / name.lower() / "data" / "stop").unlink(missing_ok=True)
+
+    if killed_force:
+        print(f"💀 Force-killed: {', '.join(killed_force)}")
+    else:
+        print(f"🛑 All agents stopped cleanly.")
+    print()
+
+def cmd_fleet_start(agents: list[str]):
+    """Start agents as background processes with log files."""
+    import subprocess
+    for name in agents:
+        agent_py = PROJECT_ROOT / "agents" / name.lower() / "agent.py"
+        if not agent_py.exists():
+            print(f"  ⚠️ Agent not found: {name}")
+            continue
+        logfile = PROJECT_ROOT / "agents" / name.lower() / "data" / "logs" / f"startup-{datetime.now():%Y%m%d-%H%M%S}.log"
+        logfile.parent.mkdir(parents=True, exist_ok=True)
+        with open(logfile, "w") as f:
+            p = subprocess.Popen(
+                [LAUNCH_PYTHON, str(agent_py)],
+                cwd=str(PROJECT_ROOT),
+                stdout=f, stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+        print(f"  ✓ {name} started — PID {p.pid} (log: {logfile.name})")
+    print()
+
+def _check_pid(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
+# ── Band Commands ─────────────────────────────────────────────────────
+
+def cmd_chats(client, entry):
+    resp = client.agent_api_chats.list_agent_chats(page_size=50)
+    chats = resp.data if hasattr(resp, "data") else []
+    if not chats:
+        print("No chatrooms.")
+        return
+    print(f"\n{entry['name']} sees {len(chats)} chatroom(s):\n")
+    for c in chats:
+        tid = (c.id or "?")[:12]
+        title = c.title or "(untitled)"
+        print(f"  {tid}  {title}")
+    print()
+
+def cmd_send(client, entry, chat_id, msg, mentions=None):
+    mention_items = []
+    if mentions:
+        for m in mentions:
+            agent_id = _resolve_id(m)
+            mention_items.append(ChatMessageRequestMentionsItem(id=agent_id, name=m))
+    req = ChatMessageRequest(content=msg, mentions=mention_items)
+    client.agent_api_messages.create_agent_chat_message(chat_id=chat_id, message=req)
+    mention_str = f" (@{', @'.join(mentions)})" if mentions else ""
+    print(f"✅ {entry['name']} → {chat_id[:12]}...{mention_str}: {msg[:100]}")
+
+def cmd_create_room(client, entry, title, mention=None, message=None):
+    req = ChatRoomRequest()
+    resp = client.agent_api_chats.create_agent_chat(chat=req)
+    room = resp.data if hasattr(resp, "data") else resp
+    chat_id = room.id if hasattr(room, "id") else str(room)
+    print(f"✅ Chatroom created — ID: {chat_id}")
+
+    if mention:
+        agent_id = _resolve_id(mention)
+        try:
+            client.agent_api_participants.add_agent_chat_participant(
+                chat_id=chat_id,
+                participant=ParticipantRequest(participant_id=agent_id))
+            print(f"   + {mention} added")
+        except Exception as e:
+            print(f"   ⚠️ Add failed: {e}")
+
+    if mention and message:
+        mentions = [ChatMessageRequestMentionsItem(id=_resolve_id(mention), name=mention)]
+        try:
+            msg_req = ChatMessageRequest(content=message, mentions=mentions)
+            client.agent_api_messages.create_agent_chat_message(chat_id=chat_id, message=msg_req)
+            print(f"   → @{mention}: {message[:80]}")
+        except Exception as e:
+            print(f"   ⚠️ Send failed: {e}")
+
+def cmd_export(client, entry, chat_id, save_name=""):
+    resp = client.agent_api_messages.list_agent_messages(chat_id=chat_id, status="all", page_size=200)
+    msgs = resp.data if hasattr(resp, "data") else []
+    if not msgs:
+        print("No messages to export.")
+        return
+    name = save_name or f"chat-export-{datetime.now():%Y%m%d-%H%M%S}"
+    path = PROJECT_ROOT / "agents" / entry['name'].lower() / "data" / "exports"
+    path.mkdir(parents=True, exist_ok=True)
+    filepath = path / f"{name}.md"
+    lines = [f"# Band Chat Export — {chat_id}",
+             f"Exported: {datetime.now():%Y-%m-%d %H:%M:%S}\n"]
+    for m in msgs:
+        sender = m.sender_name or "unknown"
+        ts = m.inserted_at or ""
+        lines.append(f"## {sender} ({ts})")
+        lines.append(m.content or "")
+        lines.append("")
+    filepath.write_text("\n".join(lines))
+    print(f"✅ {len(msgs)} messages → {filepath}")
+
+def cmd_poll(client, entry, chat_id, timeout=60, mention=None):
+    print(f"👂 {entry['name']} watching {chat_id[:12]}... (timeout={timeout}s, Ctrl+C to stop)\n")
+    seen = set()
+    deadline = time.time() + timeout
+    try:
+        while time.time() < deadline:
+            try:
+                resp = client.agent_api_messages.list_agent_messages(chat_id=chat_id, status="all", page_size=20)
+                msgs = resp.data if hasattr(resp, "data") else []
+                for m in msgs:
+                    if m.id in seen:
+                        continue
+                    seen.add(m.id)
+                    sender = m.sender_name or "?"
+                    if mention and mention.lower() not in sender.lower():
+                        continue
+                    ts = datetime.fromisoformat(str(m.inserted_at)).strftime("%H:%M:%S") if m.inserted_at else ""
+                    print(f"\n  [{ts}] **{sender}**:")
+                    for line in (m.content or "").split("\n"):
+                        print(f"  {line}")
+                    print()
+            except Exception:
+                pass
+            time.sleep(2)
+    except KeyboardInterrupt:
+        print("\n⏹ Stopped.")
+    print(f"\nSeen {len(seen)} messages.")
+
+def cmd_agent_info(entry):
+    print(f"\n  Name:    {entry['name']}")
+    print(f"  Handle:  {entry.get('handle', '?')}")
+    print(f"  Role:    {entry.get('role', '?')}")
+    print(f"  ID:      {entry.get('agent_id', '?')[:8]}...\n")
+
+
+# ── CLI ───────────────────────────────────────────────────────────────
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="supaband-cli",
+        description="Test and manage Supaband agent fleet.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=textwrap.dedent("""\
+        ── Fleet Commands (no -a needed) ──────────────────────────
+        Fleet status      ./supaband-cli fleet-status
+        Stop all          ./supaband-cli stop
+        Start agents      ./supaband-cli start [supa] [koe]
+
+        ── Band Commands (-a <agent> required) ────────────────────
+        List chats        ./supaband-cli -a supa chats
+        Create room       ./supaband-cli -a supa room -t "Research" -m koe -M "task"
+        Mention agent     ./supaband-cli -a supa mention koe -c <id> "msg"
+        Export chat       ./supaband-cli -a koe export <id>
+        Poll for replies  ./supaband-cli -a supa poll -c <id> -m koe -t 120
+        Agent info        ./supaband-cli -a supa agent-info
+        ─────────────────────────────────────────────────────────────"""),
+    )
+
+    parser.add_argument("-a", "--agent", help="Agent for Band ops (supa, koe, etc.)")
+    sub = parser.add_subparsers(dest="cmd")
+
+    # ── Fleet commands (no -a needed) ──
+    sub.add_parser("fleet-status", aliases=["fs", "fleet"],
+                   help="Show all agent PIDs and health")
+    sub.add_parser("stop", aliases=["halt", "kill-all"],
+                   help="Gracefully stop all running agents")
+    p_start = sub.add_parser("start", aliases=["launch"],
+                             help="Start agents as background processes")
+    p_start.add_argument("agents", nargs="*", default=["supa", "koe"],
+                         help="Agent names to start (default: supa koe)")
+
+    # ── Band commands ──
+    sub.add_parser("chats", aliases=["list", "ls"], help="List chatrooms")
+    p_send = sub.add_parser("send", aliases=["msg"], help="Send message")
+    p_send.add_argument("-c", "--chat", required=True, help="Chatroom ID")
+    p_send.add_argument("message", help="Message text")
+
+    p_mention = sub.add_parser("mention", aliases=["@"], help="@mention an agent")
+    p_mention.add_argument("agent_name", help="Agent to mention")
+    p_mention.add_argument("-c", "--chat", required=True, help="Chatroom ID")
+    p_mention.add_argument("message", help="Message text")
+
+    p_room = sub.add_parser("room", aliases=["create", "new"], help="Create chatroom")
+    p_room.add_argument("-t", "--title", default="", help="Label")
+    p_room.add_argument("-m", "--mention", help="Agent to add + mention")
+    p_room.add_argument("-M", "--message", help="First message")
+
+    p_export = sub.add_parser("export", aliases=["save"], help="Export chat")
+    p_export.add_argument("chat_id", help="Chatroom ID")
+    p_export.add_argument("-n", "--name", default="", help="Filename prefix")
+
+    p_poll = sub.add_parser("poll", aliases=["watch", "listen"], help="Watch for replies")
+    p_poll.add_argument("-c", "--chat", required=True, help="Chatroom ID")
+    p_poll.add_argument("-t", "--timeout", type=int, default=60, help="Max wait (s)")
+    p_poll.add_argument("-m", "--mention", help="Filter by agent")
+
+    sub.add_parser("agent-info", aliases=["who", "info"], help="Agent identity")
+
+    args = parser.parse_args()
+
+    if not args.cmd:
+        parser.print_help()
+        return
+
+    # ── Fleet commands (no agent required) ──
+    if args.cmd in ("fleet-status", "fs", "fleet"):
+        cmd_fleet_status()
+        return
+    if args.cmd in ("stop", "halt", "kill-all"):
+        cmd_fleet_stop()
+        return
+    if args.cmd in ("start", "launch"):
+        cmd_fleet_start(args.agents)
+        return
+
+    # ── Band commands (need -a) ──
+    if not args.agent:
+        _eprint("❌ Specify an agent with -a (supa, koe, mave, forge)")
+        sys.exit(1)
+
+    try:
+        client, entry = _get_client(args.agent)
+    except KeyError:
+        _eprint(f"❌ Unknown agent '{args.agent}'.")
+        sys.exit(1)
+
+    try:
+        if args.cmd in ("chats", "list", "ls"):
+            cmd_chats(client, entry)
+        elif args.cmd in ("send", "msg"):
+            cmd_send(client, entry, args.chat, args.message)
+        elif args.cmd in ("mention", "@"):
+            cmd_send(client, entry, args.chat, args.message, mentions=[args.agent_name])
+        elif args.cmd in ("room", "create", "new"):
+            cmd_create_room(client, entry, args.title, mention=args.mention, message=args.message)
+        elif args.cmd in ("export", "save"):
+            cmd_export(client, entry, args.chat_id, save_name=args.name)
+        elif args.cmd in ("poll", "watch", "listen"):
+            cmd_poll(client, entry, args.chat, timeout=args.timeout, mention=args.mention)
+        elif args.cmd in ("agent-info", "who", "info"):
+            cmd_agent_info(entry)
+    except Exception as e:
+        _eprint(f"❌ {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

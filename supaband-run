@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Supaband Runner — Start agent fleet.
+# Usage:
+#   ./supaband-run              → background-start supa + koe + mave + forge
+#   ./supaband-run supa         → background-start only supa
+#   ./supaband-run --fg supa     → foreground (for debugging)
+#   ./supaband-run stop          → stop all agents
+
+set -e
+cd "$(dirname "$0")"
+
+# Prefer project virtualenv if it exists
+PYTHON="${SUPABAND_VENV:-$(pwd)/.venv/bin/python3}"
+if [ ! -x "$PYTHON" ]; then
+    PYTHON="python3"
+fi
+
+FG=false
+AGENTS=()
+
+for arg in "$@"; do
+    case $arg in
+        --fg|-f) FG=true ;;
+        stop|halt)
+            "$PYTHON" supaband-cli stop
+            exit $?
+            ;;
+        fleet-status|fs|status|fleet)
+            "$PYTHON" supaband-cli fleet-status
+            exit $?
+            ;;
+        supa|koe|mave|forge|blobw1|blobw2|blobw3) AGENTS+=("$arg") ;;
+    esac
+done
+
+if [ ${#AGENTS[@]} -eq 0 ]; then
+    AGENTS=(supa koe mave forge)
+fi
+
+if $FG; then
+    echo "🚀 Foreground mode: ${AGENTS[*]}"
+    for agent in "${AGENTS[@]}"; do
+        "$PYTHON" "agents/$agent/agent.py" &
+    done
+    trap "kill 0; exit 0" INT
+    wait
+else
+    echo "🚀 Launching: ${AGENTS[*]}"
+    "$PYTHON" supaband-cli start "${AGENTS[@]}"
+fi

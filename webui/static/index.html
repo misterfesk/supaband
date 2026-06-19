@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supaband — Tailored Agentic Workflows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/styles.css">
+<script>
+  // Theme Management (Inline to prevent flash of unstyled theme)
+  (function() {
+    const savedTheme = localStorage.getItem('supaband-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    
+    window.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('theme-toggle-btn');
+      if (btn) {
+        updateToggleButton(btn, savedTheme);
+        btn.addEventListener('click', () => {
+          const current = document.documentElement.getAttribute('data-theme');
+          const next = current === 'light' ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('supaband-theme', next);
+          updateToggleButton(btn, next);
+        });
+      }
+    });
+    
+    function updateToggleButton(btn, theme) {
+      const icon = btn.querySelector('.toggle-icon');
+      const text = btn.querySelector('.toggle-text');
+      if (theme === 'light') {
+        if (icon) icon.innerHTML = '🪵';
+        if (text) text.innerText = 'Tweed Mode';
+      } else {
+        if (icon) icon.innerHTML = '🕯';
+        if (text) text.innerText = 'Charcoal Mode';
+      }
+    }
+  })();
+</script>
+</head>
+<body>
+<div id="app">
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="logo">SUPABAND</span>
+      <span class="logo-sub">Bespoke Multi-Agent Control</span>
+    </div>
+    <div class="topbar-center">
+      <div class="project-select-wrapper">
+        <label for="project-select" class="select-label">Active Project Ledger:</label>
+        <select id="project-select" class="project-select"></select>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span id="agent-status-summary" class="status-summary">--</span>
+      <button id="theme-toggle-btn" class="theme-toggle-btn" title="Toggle Theme (Tweed / Charcoal)">
+        <span class="toggle-icon"></span>
+        <span class="toggle-text">Linen Mode</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="main-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">Projects</div>
+      <div id="project-list" class="project-list"></div>
+      <button class="btn-new-project" onclick="UI.newProject()">+ New Project</button>
+    </aside>
+
+    <!-- Content -->
+    <main class="content">
+      <!-- Section Tabs -->
+      <nav class="section-tabs">
+        <button class="tab active" data-section="chats" onclick="UI.switchSection('chats')">Chats</button>
+        <button class="tab" data-section="blackboard" onclick="UI.switchSection('blackboard')">Blackboard</button>
+        <button class="tab" data-section="production" onclick="UI.switchSection('production')">Production</button>
+        <button class="tab" data-section="todos" onclick="UI.switchSection('todos')">Todos</button>
+        <button class="tab" data-section="agents" onclick="UI.switchSection('agents')">Agents</button>
+      </nav>
+
+      <!-- Section: Chats -->
+      <div id="section-chats" class="section active">
+        <div class="chat-layout">
+          <div class="chat-sessions">
+            <button class="btn-new-session" onclick="UI.newSession()">+ New Session</button>
+            <div id="session-list" class="session-list"></div>
+          </div>
+          <div class="chat-main">
+            <div id="chat-messages" class="chat-messages"></div>
+            <div class="chat-input-area">
+              <textarea id="chat-input" class="chat-input" placeholder="Send a message to Supa..." rows="2"></textarea>
+              <button class="btn-send" onclick="UI.sendMessage()">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Blackboard -->
+      <div id="section-blackboard" class="section">
+        <div class="section-header">
+          <h2>Blackboard</h2>
+          <div class="filter-bar">
+            <select id="bb-filter-dept" class="filter-select" onchange="UI.loadBlackboard()">
+              <option value="">All Departments</option>
+              <option value="research">Research</option>
+              <option value="marketing">Marketing</option>
+              <option value="operations">Operations</option>
+              <option value="production">Production</option>
+            </select>
+            <button class="btn-refresh" onclick="UI.loadBlackboard()">Refresh</button>
+          </div>
+        </div>
+        <div id="blackboard-grid" class="card-grid"></div>
+      </div>
+
+      <!-- Section: Production -->
+      <div id="section-production" class="section">
+        <div class="section-header">
+          <h2>Production</h2>
+          <div class="filter-bar">
+            <select id="prod-filter-type" class="filter-select" onchange="UI.loadProduction()">
+              <option value="">All Types</option>
+              <option value="post">Posts</option>
+              <option value="report">Reports</option>
+              <option value="brief">Briefs</option>
+              <option value="analysis">Analysis</option>
+              <option value="campaign">Campaigns</option>
+              <option value="email">Emails</option>
+              <option value="article">Articles</option>
+            </select>
+            <button class="btn-refresh" onclick="UI.loadProduction()">Refresh</button>
+          </div>
+        </div>
+        <div id="production-grid" class="card-grid"></div>
+      </div>
+
+      <!-- Section: Todos -->
+      <div id="section-todos" class="section">
+        <div class="section-header">
+          <h2>Task Approvals</h2>
+          <div class="filter-bar">
+            <select id="todo-filter-status" class="filter-select" onchange="UI.loadTodos()">
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <button class="btn-refresh" onclick="UI.loadTodos()">Refresh</button>
+          </div>
+        </div>
+        <div id="todo-list" class="todo-list"></div>
+      </div>
+
+      <!-- Section: Agents -->
+      <div id="section-agents" class="section">
+        <div class="section-header">
+          <h2>Agent Fleet</h2>
+          <button class="btn-refresh" onclick="UI.loadAgents()">Refresh</button>
+        </div>
+        <div id="agent-grid" class="agent-grid"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Bottom Status Bar -->
+  <footer class="statusbar">
+    <div id="agent-dots" class="agent-dots"></div>
+    <div class="status-info">
+      <span id="connection-status">connected</span>
+    </div>
+  </footer>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

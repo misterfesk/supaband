@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# supaband — Single entry point for the Supaband TUI + agent fleet (like opencode)
+#
+# Usage:
+#   ./supaband              Start TUI (auto-creates/resumes default session)
+#   ./supaband --new        Start with a fresh session
+#   ./supaband --session s  Resume a specific session by ID
+#   ./supaband run          Launch all fleet agents (supa + koe + mave + forge)
+#   ./supaband status       Show fleet status
+#   ./supaband stop         Stop all agents
+#   ./supaband web          Start the WebUI server (same as ./supaband-web)
+#
+# The script auto-detects the venv Python — no manual activation needed.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_PY="${SCRIPT_DIR}/.venv/bin/python3"
+
+# Fall back to system python3 if venv not found
+if [ ! -f "$VENV_PY" ]; then
+  VENV_PY="$(command -v python3)"
+fi
+
+# Subcommands: run, status, stop, web
+case "${1:-}" in
+  run)
+    exec "$VENV_PY" "${SCRIPT_DIR}/supaband-run" "${@:2}"
+    ;;
+  status)
+    exec "$VENV_PY" -c "
+import sys; sys.path.insert(0, '${SCRIPT_DIR}')
+from core import fleet
+for name, info in fleet.list_agent_status().items():
+    if info['running']:
+        h = info.get('health') or {}
+        print(f'  ✅ {name:8s} — PID {info[\"pid\"]} | cycles={h.get(\"cycles\",\"?\")} msgs={h.get(\"messages_processed\",\"?\")}')
+    else:
+        print(f'  ❌ {name:8s} — offline')
+"
+    ;;
+  stop)
+    exec "$VENV_PY" -c "
+import sys; sys.path.insert(0, '${SCRIPT_DIR}')
+from core import fleet
+for n in ['supa','koe','mave','forge','blobw1','blobw2','blobw3']:
+    fleet.kill_agent(n)
+print('All agents stopped.')
+"
+    ;;
+  web)
+    exec "$VENV_PY" "${SCRIPT_DIR}/supaband-web" "${@:2}"
+    ;;
+  *)
+    # Default: launch TUI
+    exec "$VENV_PY" "${SCRIPT_DIR}/supaband-tui" "$@"
+    ;;
+esac

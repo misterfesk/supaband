@@ -1,0 +1,23 @@
+# Agent Configuration — Supaband
+# Register agents on app.band.ai and fill in the real values below.
+#
+# Each agent needs:
+#   name:     Display name
+#   role:     Role description
+#   handle:   @zoha/<name>-bz (Band handle)
+#   agent_id: UUID from Band registration
+#   api_key:  band_a_... from Band registration
+
+supervisor_agent:
+  name: "Supa"
+  role: "Supervisor"
+  handle: "@zoha/supa-bz"
+  agent_id: "your-supa-uuid"
+  api_key: "band_a_your_supa_key"
+
+research_manager:
+  name: "Koe"
+  role: "Research Department Manager"
+  handle: "@zoha/koe-bz"
+  agent_id: "your-koe-uuid"
+  api_key: "band_a_your_koe_key"

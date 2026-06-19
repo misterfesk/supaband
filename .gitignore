@@ -1,0 +1,76 @@
+# Supaband .gitignore — protect secrets and runtime artifacts
+
+# ── Secrets ──────────────────────────────────────────────
+.env
+agent_config.yaml
+*.key
+*.pem
+*_token*
+*_secret*
+*credential*
+
+# ── Python ───────────────────────────────────────────────
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# ── Agent runtime data ───────────────────────────────────
+agents/*/data/logs/
+agents/*/data/research/
+agents/*/data/exports/
+agents/*/data/campaigns/
+agents/*/data/agent.pid
+agents/*/data/stop
+agents/*/prompt_override.md
+
+# Worker runtime data
+workers/*/data/logs/
+workers/*/data/agent.pid
+workers/*/data/stop
+workers/*/prompt_override.md
+
+# Blob worker runtime data
+blob/*/data/logs/
+blob/*/data/agent.pid
+blob/*/data/stop
+
+# ── Databases (generated at runtime) ─────────────────────
+data/blackboard.db
+data/blackboard.db-wal
+data/blackboard.db-shm
+data/blackboard_files/*
+data/sessions.db
+data/sessions.db-wal
+data/sessions.db-shm
+data/webui.db
+data/webui.db-wal
+data/webui.db-shm
+
+# ── Agent/worker generated content ───────────────────────
+workers/*/data/*.md
+agents/*/data/*.md
+
+# ── Keep directory structure ─────────────────────────────
+!agents/*/data/
+!agents/*/data/.gitkeep
+!workers/*/data/
+!workers/*/data/.gitkeep
+!blob/*/data/
+!data/
+!data/.gitkeep
+!data/blackboard_files/
+!data/blackboard_files/.gitkeep
+
+# ── OS files ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ──────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo

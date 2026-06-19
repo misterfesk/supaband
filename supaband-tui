@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+"""Supaband TUI — Terminal chat interface for Supa.
+
+Usage:
+    ./supaband-tui              Start TUI (auto-creates/resumes default session)
+    ./supaband-tui --new        Start with a fresh session
+    ./supaband-tui --session s  Start with a specific session ID
+
+Or use the wrapper:
+    ./supaband                  Same as ./supaband-tui
+    ./supaband --new            Fresh session
+
+Requires:
+    - agent_config.yaml with supervisor_agent + research_manager entries
+    - .env with OPENAI_API_KEY
+    - Supa agent running (use /awake supa or ./supaband run)
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent
+
+# Auto-activate venv if running with system python (fixes missing modules)
+_venv_py = PROJECT_ROOT / ".venv" / "bin" / "python3"
+if _venv_py.exists() and str(_venv_py) != sys.executable:
+    # Re-exec with venv python to get all installed packages
+    import os
+    os.execv(str(_venv_py), [str(_venv_py), str(Path(__file__).resolve()), *sys.argv[1:]])
+
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from tui.app import TUIApp
+
+
+def main():
+    app = TUIApp()
+
+    # Parse simple args
+    args = sys.argv[1:]
+    force_new = "--new" in args
+    session_id = None
+    for i, a in enumerate(args):
+        if a == "--session" and i + 1 < len(args):
+            session_id = args[i + 1]
+
+    # Override init defaults based on args
+    if force_new:
+        app.create_new_session("new-session")
+    elif session_id:
+        session = app.db.get_session(session_id)
+        if session:
+            app.current_session = session_id
+            app.session_name = session["name"]
+        else:
+            print(f"Session not found: {session_id}")
+            sys.exit(1)
+
+    app.run()
+
+
+if __name__ == "__main__":
+    main()
