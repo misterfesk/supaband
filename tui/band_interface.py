@@ -38,15 +38,20 @@ CONFIG_KEYS = {
     "blobw3": "blob_worker_3",
 }
 
-# Agent UUIDs (from agent_base.py)
-AGENT_IDS = {
-    "supa": "3bbf64e0-5a16-4d6d-97dc-daef8e3c4334",
-    "koe": "d7ada181-c3bf-4288-bbe4-ffccce087751",
-    
-    "blobw1": "45c6ba72-474d-4a54-8952-d6911da06112",
-    "blobw2": "1d3e3b73-6d09-4fed-ad78-b03999c29c27",
-    "blobw3": "bb9d2d63-08ec-40db-8902-c70e9d6417a4",
-}
+# Agent UUIDs — loaded from agent_config.yaml at runtime (populated by setup.sh)
+def _load_agent_ids() -> dict[str, str]:
+    try:
+        config = load_agent_config()
+        ids = {}
+        for key, entry in config.items():
+            name = (entry.get("name") or key).lower().strip()
+            if entry.get("agent_id"):
+                ids[name] = str(entry["agent_id"])
+        return ids
+    except Exception:
+        return {}
+
+AGENT_IDS = _load_agent_ids()
 
 
 class BandInterface:
