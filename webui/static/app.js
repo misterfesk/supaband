@@ -325,6 +325,53 @@ const UI = {
     }
   },
 
+  async showProductionItem(itemId) {
+    try {
+      const data = await this.api(`/production/${itemId}`);
+      const item = data.item;
+      const grid = document.getElementById('production-grid');
+      
+      const typeIcons = {
+        post: '<span class="post-icon icon-post"></span>',
+        report: '<span class="post-icon icon-report"></span>',
+        brief: '<span class="post-icon icon-brief"></span>',
+        analysis: '<span class="post-icon icon-analysis"></span>',
+        campaign: '<span class="post-icon icon-campaign"></span>',
+        email: '<span class="post-icon icon-email"></span>',
+        article: '<span class="post-icon icon-article"></span>',
+        image: '<span class="post-icon icon-image"></span>'
+      };
+      const icon = typeIcons[item.item_type] || '<span class="post-icon icon-default"></span>';
+      let meta = '';
+      try { meta = JSON.parse(item.metadata || '{}'); } catch (e) {}
+      const metaStr = Object.entries(meta).map(([k, v]) => `${k}: ${v}`).join(' | ');
+
+      const renderedContent = this.md(item.content);
+      const hasMedia = renderedContent.includes('<img') || renderedContent.includes('<video') || item.item_type === 'image';
+      
+      grid.innerHTML = `
+        <div class="prod-card expanded ${hasMedia ? 'has-media' : ''}" style="grid-column: 1 / -1; cursor: default;">
+          <div class="card-header">
+            <span class="card-title">${icon} ${this.esc(item.title)}</span>
+            <span class="badge-type">${this.esc(item.item_type)}</span>
+          </div>
+          <div class="prod-agent">
+            <div class="agent-avatar">${this.initials(item.agent_name)}</div>
+            <span style="font-size:12px;color:var(--text-2)">${this.esc(item.agent_name)}</span>
+          </div>
+          <div class="prod-content md">${renderedContent}</div>
+          <div class="card-footer">
+            <span>${this.fmtDate(item.created_at)}</span>
+            ${metaStr ? `<span>${this.esc(metaStr)}</span>` : ''}
+            <button class="btn-refresh" onclick="UI.loadProduction()" style="margin-top: 12px; align-self: flex-start;">← Back</button>
+          </div>
+        </div>
+      `;
+    } catch (e) {
+      console.error('showProductionItem:', e);
+    }
+  },
+
   // ── Production ────────────────────────────────────────────────
   async loadProduction() {
     const type = document.getElementById('prod-filter-type').value;
@@ -365,6 +412,12 @@ const UI = {
         try { meta = JSON.parse(item.metadata || '{}'); } catch (e) {}
         const metaStr = Object.entries(meta).map(([k, v]) => `${k}: ${v}`).join(' | ');
 
+        const renderedContent = this.md(item.content);
+        const hasMedia = renderedContent.includes('<img') || renderedContent.includes('<video') || item.item_type === 'image';
+        if (hasMedia) {
+          card.classList.add('has-media');
+        }
+
         card.innerHTML = `
           <div class="card-header">
             <span class="card-title">${icon} ${this.esc(item.title)}</span>
@@ -374,12 +427,13 @@ const UI = {
             <div class="agent-avatar">${this.initials(item.agent_name)}</div>
             <span style="font-size:12px;color:var(--text-2)">${this.esc(item.agent_name)}</span>
           </div>
-          <div class="prod-content md">${this.md(item.content)}</div>
+          <div class="prod-content md">${renderedContent}</div>
           <div class="card-footer">
             <span>${this.fmtDate(item.created_at)}</span>
             ${metaStr ? `<span>${this.esc(metaStr)}</span>` : ''}
           </div>
         `;
+        card.onclick = () => this.showProductionItem(item.id);
         grid.appendChild(card);
       });
     } catch (e) {
@@ -622,6 +676,15 @@ const UI = {
     // Bold and italic
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+    // Images & Videos (e.g. ![description](url))
+    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
+      const isVideo = /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url) || alt.toLowerCase().includes('video');
+      if (isVideo) {
+        return `<video src="${url}" controls class="prod-media" playsinline></video>`;
+      }
+      return `<img src="${url}" alt="${alt}" class="prod-media" />`;
+    });
 
     // Links
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
