@@ -6,6 +6,12 @@
 
 **Supaband** is a self-contained multi-agent AI system for business automation. You give Supa your strategic objectives — it brainstorms, creates plans, and the agent team executes. Agents coordinate market research, marketing campaigns, content production, visual briefs, and operational planning. Deliverables land on the production dashboard for your approval, and you can connect external services for extended workflows.
 
+> ⚠️ **Setup Note (Hackathon Submission)**
+> This project was built during a hackathon. The automated `setup.sh` may hit issues depending on your environment (Python version mismatch, missing Band SDK dependencies). The original code is preserved as-submitted.
+>
+> If the automated setup fails, follow the **[Manual Setup Guide](SETUP_GUIDE.md)** for step-by-step instructions.
+> *This guide was added post-submission to help judges and users get the project running.*
+
 ---
 
 ## Quick Start
